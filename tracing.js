@@ -1,8 +1,10 @@
 const WebSocket = require('ws');
-const ws = new WebSocket('ws://192.168.2.31:6001');
 const fs = require('fs');
 const { Transform } = require('stream');
 const os = require('node:os');
+const axios = require('axios').default;
+const boxIP = '192.168.2.31'
+const ws = new WebSocket(`ws://${boxIP}:6001`);
 
 var requestId = 10;
 var data_list = [];
@@ -36,15 +38,20 @@ ws.on('open', function open() {
   )
 });
 
-ws.on('message', function message(data) {
+ws.on('message', async function message(data) {
   let result = JSON.parse(data)
   if (result['opcode'] == 'subscribe') {
     // console.log('received: ', result.data.length)
     if (result.data && result.data.length > 0) {
       for (const pdu of result.data) {
         // console.log(pdu);
-        if (pdu.id == 0x16A954FB){
-          // todo
+        if (pdu.id == 0x16A954FB) {
+          await axios.post(`http://${boxIP}/api/simulation/ipdu/can/can1`, {
+            "id": "0x5EA",
+            "payload": "02 00 00 00 F8 00 F8 0F",
+            "isExtended": false,
+            "isCANFD": true
+          })
         }
       }
     }
