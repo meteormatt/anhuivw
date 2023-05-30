@@ -7,7 +7,7 @@ const boxIP = '192.168.2.31'
 const ws = new WebSocket(`ws://${boxIP}:6001`);
 
 var requestId = 10;
-var data_list = [];
+// var data_list = [];
 
 ws.on('open', function open() {
   setInterval(() => {
@@ -45,7 +45,9 @@ ws.on('message', async function message(data) {
     if (result.data && result.data.length > 0) {
       for (const pdu of result.data) {
         // console.log(pdu);
-        if (pdu.id == 0x16A954FB) {
+        // 判断CAN信号 Standklima_01.STK_standklima_Anf, CAN ID 0x16A954FB, CAN FD extend, STK_Standklima_Anf start bit 20, bit length = 1,value = 1 (代表激活请求发出)
+        if (pdu.id == 0x16A954FB && pdu.data.data[2] & 0b00001000 != 0) {
+          // CAN回复 Klima_EV_04.KL_Standklima_status_03 = 1 激活 Klima_EV_04，CAN ID = 0x5EA, CAN FD, KL_Standklima_status_03 start bit = 1, bit length = 3
           await axios.post(`http://${boxIP}/api/simulation/ipdu/can/can1`, {
             "id": "0x5EA",
             "payload": "02 00 00 00 F8 00 F8 0F",
@@ -56,7 +58,6 @@ ws.on('message', async function message(data) {
       }
     }
   }
-
 });
 
 ws.on('close', (code, reason) => {
@@ -69,15 +70,6 @@ ws.on('error', (error) => {
   process.exit()
 })
 
-// setTimeout(() => {
-//   ws.send(JSON.stringify({
-//     opcode: "setRule",
-//     requestId: requestId++,
-//     data: {
-//       rule: "(pdu)=>{return true}",
-//     },
-//   }))
-// }, 5000)
 console.log(new Date())
 
 // 增加换行符，Windows中为\r\n, Linux为\n
